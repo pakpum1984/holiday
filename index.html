@@ -849,6 +849,23 @@
             'early': '#D4A5A5'
         };
 
+        function formatHoursAndMinutes(hoursDecimal) {
+    if (hoursDecimal <= 0) return "0 นาที";
+
+    const totalMinutes = Math.round(hoursDecimal * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours === 0) {
+        return `${minutes} นาที`;
+    } else if (minutes === 0) {
+        return `${hours} ชั่วโมง`;
+    } else {
+        return `${hours} ชั่วโมง ${minutes} นาที`;
+        // หรืออยากย่อ → `${hours}:${minutes.toString().padStart(2, '0')}`
+    }
+}
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initializeDateTime();
@@ -1018,156 +1035,160 @@
         }
 
         // Calculate duration for display with lunch break deduction for all leave types
-        function calculateDuration(start, end, leaveType) {
-            const actualHours = calculateActualHours(start, end);
-            
-            // แสดงผลตามจำนวนชั่วโมง/วัน
-            if (actualHours >= 8) {
-                const days = Math.floor(actualHours / 8);
-                const remainingHours = actualHours % 8;
-                
-                if (remainingHours === 0) {
-                    return `${days} วัน`;
-                } else {
-                    return `${days} วัน ${remainingHours.toFixed(1)} ชั่วโมง`;
-                }
-            }
-            
-            if (actualHours < 1) {
-                const minutes = Math.floor(actualHours * 60);
-                return `${minutes} นาที`;
-            }
-            
-            return `${actualHours.toFixed(1)} ชั่วโมง`;
+function calculateDuration(start, end, leaveType) {
+    const actualHours = calculateActualHours(start, end);
+    
+    // ถ้าเกินหรือเท่ากับ 8 ชม. → แสดงเป็นวัน + เหลือเป็น ชม:นาที
+    if (actualHours >= 8) {
+        const days = Math.floor(actualHours / 8);
+        const remainingHours = actualHours % 8;
+        
+        if (remainingHours === 0) {
+            return `${days} วัน`;
         }
+        
+        return `${days} วัน ${formatHoursAndMinutes(remainingHours)}`;
+    }
+    
+    // น้อยกว่า 1 วัน → แสดงเป็น ชั่วโมง นาที
+    return formatHoursAndMinutes(actualHours);
+}
 
         // Calculate total leave summary by employee
-        function calculateEmployeeSummary() {
-            const summary = {};
-            
-            employees.forEach(emp => {
-                summary[emp.id] = {
-                    employeeId: emp.id,
-                    employeeName: emp.name,
-                    total: 0,
-                    byType: {
-                        'personal': 0,
-                        'sick': 0,
-                        'sick-cert': 0,
-                        'vacation': 0,
-                        'late': 0,
-                        'early': 0
-                    }
-                };
-            });
-            
-            leaves.forEach(leave => {
-                if (summary[leave.employeeId]) {
-                    const days = leave.days; // ใช้ค่าที่คำนวณไว้แล้วตอนบันทึก
-                    summary[leave.employeeId].total += days;
-                    summary[leave.employeeId].byType[leave.type] += days;
-                }
-            });
-            
-            // ปัดเศษทศนิยม 2 ตำแหน่งเพื่อความแม่นยำ
-            Object.values(summary).forEach(emp => {
-                emp.total = Math.round(emp.total * 100) / 100;
-                Object.keys(emp.byType).forEach(type => {
-                    emp.byType[type] = Math.round(emp.byType[type] * 100) / 100;
-                });
-            });
-            
-            return summary;
+ function calculateEmployeeSummary() {
+    const summary = {};
+    
+    employees.forEach(emp => {
+        summary[emp.id] = {
+            employeeId: emp.id,
+            employeeName: emp.name,
+            total: 0,
+            byType: {
+                'personal': 0,
+                'sick': 0,
+                'sick-cert': 0,
+                'vacation': 0,
+                'late': 0,
+                'early': 0
+            }
+        };
+    });
+    
+    leaves.forEach(leave => {
+        if (summary[leave.employeeId]) {
+            // ใช้ leave.days โดยตรง ไม่ต้องปัดเศษเพิ่ม
+            const days = leave.days;
+            summary[leave.employeeId].total += days;
+            summary[leave.employeeId].byType[leave.type] += days;
         }
+    });
+    
+    return summary;
+}
+
 
         // ฟังก์ชันแปลงจำนวนวันเป็นรูปแบบวันและชั่วโมง
-        function formatDaysAndHours(days) {
-            if (days === 0) return '0 วัน';
-            
-            const wholeDays = Math.floor(days);
-            const hours = Math.round((days - wholeDays) * 8 * 10) / 10; // แปลงเศษวันเป็นชั่วโมง (ปัดเศษทศนิยม 1 ตำแหน่ง)
-            
-            if (wholeDays === 0) {
-                if (hours < 1) {
-                    const minutes = Math.round(hours * 60);
-                    return `${minutes} นาที`;
-                }
-                return `${hours} ชั่วโมง`;
-            } else if (hours === 0) {
-                return `${wholeDays} วัน`;
-            } else {
-                return `${wholeDays} วัน ${hours} ชั่วโมง`;
-            }
-        }
+function formatDaysAndHours(days) {
+    if (days <= 0) return '0 วัน';
+    if (days === 0) return '0 นาที';
+
+    const totalMinutes = Math.round(days * 8 * 60); // แปลงวันเป็นนาที
+    const wholeDays = Math.floor(totalMinutes / (8 * 60));
+    const remainingMinutes = totalMinutes % (8 * 60);
+
+    if (wholeDays === 0) {
+        return formatMinutesToThai(remainingMinutes);
+    }
+    
+    if (remainingMinutes === 0) {
+        return `${wholeDays} วัน`;
+    }
+    
+    return `${wholeDays} วัน ${formatMinutesToThai(remainingMinutes)}`;
+}
+
+// ฟังก์ชันแปลงนาทีเป็นรูปแบบไทย
+function formatMinutesToThai(minutes) {
+    if (minutes < 60) {
+        return `${minutes} นาที`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (mins === 0) {
+        return `${hours} ชั่วโมง`;
+    }
+    return `${hours} ชั่วโมง ${mins} นาที`;
+}
+
 
         // Update employee summary UI
-        function updateEmployeeSummary() {
-            const summary = calculateEmployeeSummary();
-            const container = document.getElementById('employeeSummary');
-            
-            if (employees.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1/-1; background: white; border-radius: 15px;">
-                        <i class="fas fa-users"></i>
-                        <p>ยังไม่มีข้อมูลพนักงาน กรุณาเพิ่มพนักงานก่อน</p>
+function updateEmployeeSummary() {
+    const summary = calculateEmployeeSummary();
+    const container = document.getElementById('employeeSummary');
+    
+    if (employees.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1/-1; background: white; border-radius: 15px;">
+                <i class="fas fa-users"></i>
+                <p>ยังไม่มีข้อมูลพนักงาน กรุณาเพิ่มพนักงานก่อน</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    Object.values(summary).forEach(emp => {
+        // คำนวณยอดรวมแต่ละประเภทให้เป็นวันและชั่วโมง โดยใช้ค่าดิบโดยตรง
+        const personalDisplay = formatDaysAndHours(emp.byType.personal);
+        const sickDisplay = formatDaysAndHours(emp.byType.sick);
+        const sickCertDisplay = formatDaysAndHours(emp.byType['sick-cert']);
+        const vacationDisplay = formatDaysAndHours(emp.byType.vacation);
+        const lateDisplay = formatDaysAndHours(emp.byType.late);
+        const earlyDisplay = formatDaysAndHours(emp.byType.early);
+        const totalDisplay = formatDaysAndHours(emp.total);
+        
+        html += `
+            <div class="employee-summary-card">
+                <div class="employee-summary-header">
+                    <i class="fas fa-user-circle"></i>
+                    <h3>${emp.employeeName}</h3>
+                </div>
+                <div class="leave-summary-grid">
+                    <div class="leave-summary-item">
+                        <div class="label"><i class="fas fa-user"></i> ลากิจ</div>
+                        <div class="value">${personalDisplay}</div>
                     </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            Object.values(summary).forEach(emp => {
-                // คำนวณยอดรวมแต่ละประเภทให้เป็นวันและชั่วโมง
-                const personalDisplay = formatDaysAndHours(emp.byType.personal);
-                const sickDisplay = formatDaysAndHours(emp.byType.sick);
-                const sickCertDisplay = formatDaysAndHours(emp.byType['sick-cert']);
-                const vacationDisplay = formatDaysAndHours(emp.byType.vacation);
-                const lateDisplay = formatDaysAndHours(emp.byType.late);
-                const earlyDisplay = formatDaysAndHours(emp.byType.early);
-                const totalDisplay = formatDaysAndHours(emp.total);
-                
-                html += `
-                    <div class="employee-summary-card">
-                        <div class="employee-summary-header">
-                            <i class="fas fa-user-circle"></i>
-                            <h3>${emp.employeeName}</h3>
-                        </div>
-                        <div class="leave-summary-grid">
-                            <div class="leave-summary-item">
-                                <div class="label"><i class="fas fa-user"></i> ลากิจ</div>
-                                <div class="value">${personalDisplay}</div>
-                            </div>
-                            <div class="leave-summary-item">
-                                <div class="label"><i class="fas fa-thermometer-half"></i> ลาป่วย</div>
-                                <div class="value">${sickDisplay}</div>
-                            </div>
-                            <div class="leave-summary-item">
-                                <div class="label"><i class="fas fa-file-medical"></i> ป่วยมีใบ</div>
-                                <div class="value">${sickCertDisplay}</div>
-                            </div>
-                            <div class="leave-summary-item">
-                                <div class="label"><i class="fas fa-umbrella-beach"></i> ลาพักร้อน</div>
-                                <div class="value">${vacationDisplay}</div>
-                            </div>
-                            <div class="leave-summary-item">
-                                <div class="label"><i class="fas fa-clock"></i> มาสาย</div>
-                                <div class="value">${lateDisplay}</div>
-                            </div>
-                            <div class="leave-summary-item">
-                                <div class="label"><i class="fas fa-sign-out-alt"></i> กลับก่อน</div>
-                                <div class="value">${earlyDisplay}</div>
-                            </div>
-                        </div>
-                        <div class="total-summary">
-                            <span>รวมทั้งหมด</span>
-                            <span>${totalDisplay}</span>
-                        </div>
+                    <div class="leave-summary-item">
+                        <div class="label"><i class="fas fa-thermometer-half"></i> ลาป่วย</div>
+                        <div class="value">${sickDisplay}</div>
                     </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
+                    <div class="leave-summary-item">
+                        <div class="label"><i class="fas fa-file-medical"></i> ป่วยมีใบ</div>
+                        <div class="value">${sickCertDisplay}</div>
+                    </div>
+                    <div class="leave-summary-item">
+                        <div class="label"><i class="fas fa-umbrella-beach"></i> ลาพักร้อน</div>
+                        <div class="value">${vacationDisplay}</div>
+                    </div>
+                    <div class="leave-summary-item">
+                        <div class="label"><i class="fas fa-clock"></i> มาสาย</div>
+                        <div class="value">${lateDisplay}</div>
+                    </div>
+                    <div class="leave-summary-item">
+                        <div class="label"><i class="fas fa-sign-out-alt"></i> กลับก่อน</div>
+                        <div class="value">${earlyDisplay}</div>
+                    </div>
+                </div>
+                <div class="total-summary">
+                    <span>รวมทั้งหมด</span>
+                    <span>${totalDisplay}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
 
         // Firebase Operations - ใช้โครงสร้างตาม rules
         async function saveToFirebase(leave) {
@@ -1319,94 +1340,95 @@
         }
 
         // Save leave
-        async function saveLeave() {
-            const employeeId = document.getElementById('employeeSelect').value;
-            const leaveType = document.getElementById('leaveTypeSelect').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const reason = document.getElementById('leaveReason').value.trim(); // อ่านค่าเหตุผล
-            
-            if (!employeeId) {
-                Swal.fire({
-                    title: 'ไม่สามารถบันทึกได้',
-                    text: 'กรุณาเลือกพนักงาน',
-                    icon: 'warning',
-                    confirmButtonColor: '#667eea',
-                    confirmButtonText: 'ตกลง'
-                });
-                return;
-            }
-            
-            if (!startDate || !endDate) {
-                Swal.fire({
-                    title: 'ไม่สามารถบันทึกได้',
-                    text: 'กรุณาเลือกวันที่และเวลา',
-                    icon: 'warning',
-                    confirmButtonColor: '#667eea',
-                    confirmButtonText: 'ตกลง'
-                });
-                return;
-            }
-            
-            if (new Date(endDate) <= new Date(startDate)) {
-                Swal.fire({
-                    title: 'ไม่สามารถบันทึกได้',
-                    text: 'วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น',
-                    icon: 'error',
-                    confirmButtonColor: '#667eea',
-                    confirmButtonText: 'ตกลง'
-                });
-                return;
-            }
-            
-            if (!reason) {
-                Swal.fire({
-                    title: 'ไม่สามารถบันทึกได้',
-                    text: 'กรุณากรอกเหตุผลการลา',
-                    icon: 'warning',
-                    confirmButtonColor: '#667eea',
-                    confirmButtonText: 'ตกลง'
-                });
-                return;
-            }
-            
-            const newLeave = {
-                id: Date.now().toString(),
-                employeeId: employeeId,
-                employeeName: getEmployeeName(employeeId),
-                type: leaveType,
-                typeName: leaveTypeNames[leaveType],
-                icon: leaveTypeIcons[leaveType],
-                startDate: startDate,
-                endDate: endDate,
-                duration: calculateDuration(startDate, endDate, leaveType),
-                days: calculateDurationInDays(startDate, endDate, leaveType),
-                reason: reason, // เพิ่มเหตุผลการลา
-                timestamp: new Date().toISOString()
-            };
-            
-            leaves.unshift(newLeave);
-            saveToLocalStorage();
-            
-            if (isOnline && firebaseInitialized) {
-                await saveToFirebase(newLeave);
-                await saveEmployeesToFirebase();
-            }
-            
-            updateUI();
-            initializeDateTime();
-            document.getElementById('leaveReason').value = ''; // เคลียร์ช่องเหตุผลหลังจากบันทึก
-            
-            // ✅ Sweet Alert แจ้งเตือนบันทึกสำเร็จ
-            Swal.fire({
-                title: 'บันทึกสำเร็จ!',
-                text: 'บันทึกการลาเรียบร้อยแล้ว',
-                icon: 'success',
-                timer: 1000,
-                showConfirmButton: true,
-        
-            });
-        }
+async function saveLeave() {
+    const employeeId = document.getElementById('employeeSelect').value;
+    const leaveType = document.getElementById('leaveTypeSelect').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const reason = document.getElementById('leaveReason').value.trim();
+    
+    if (!employeeId) {
+        Swal.fire({
+            title: 'ไม่สามารถบันทึกได้',
+            text: 'กรุณาเลือกพนักงาน',
+            icon: 'warning',
+            confirmButtonColor: '#667eea',
+            confirmButtonText: 'ตกลง'
+        });
+        return;
+    }
+    
+    if (!startDate || !endDate) {
+        Swal.fire({
+            title: 'ไม่สามารถบันทึกได้',
+            text: 'กรุณาเลือกวันที่และเวลา',
+            icon: 'warning',
+            confirmButtonColor: '#667eea',
+            confirmButtonText: 'ตกลง'
+        });
+        return;
+    }
+    
+    if (new Date(endDate) <= new Date(startDate)) {
+        Swal.fire({
+            title: 'ไม่สามารถบันทึกได้',
+            text: 'วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น',
+            icon: 'error',
+            confirmButtonColor: '#667eea',
+            confirmButtonText: 'ตกลง'
+        });
+        return;
+    }
+    
+    if (!reason) {
+        Swal.fire({
+            title: 'ไม่สามารถบันทึกได้',
+            text: 'กรุณากรอกเหตุผลการลา',
+            icon: 'warning',
+            confirmButtonColor: '#667eea',
+            confirmButtonText: 'ตกลง'
+        });
+        return;
+    }
+    
+    // คำนวณค่า days และ duration
+    const daysValue = calculateDurationInDays(startDate, endDate, leaveType);
+    
+    const newLeave = {
+        id: Date.now().toString(),
+        employeeId: employeeId,
+        employeeName: getEmployeeName(employeeId),
+        type: leaveType,
+        typeName: leaveTypeNames[leaveType],
+        icon: leaveTypeIcons[leaveType],
+        startDate: startDate,
+        endDate: endDate,
+        duration: calculateDuration(startDate, endDate, leaveType),
+        days: daysValue, // เก็บค่าเดิมไม่ต้องปัดเศษ
+        reason: reason,
+        timestamp: new Date().toISOString()
+    };
+    
+    leaves.unshift(newLeave);
+    saveToLocalStorage();
+    
+    if (isOnline && firebaseInitialized) {
+        await saveToFirebase(newLeave);
+        await saveEmployeesToFirebase();
+    }
+    
+    updateUI();
+    initializeDateTime();
+    document.getElementById('leaveReason').value = '';
+    
+    Swal.fire({
+        title: 'บันทึกสำเร็จ!',
+        text: 'บันทึกการลาเรียบร้อยแล้ว',
+        icon: 'success',
+        timer: 1000,
+        showConfirmButton: true,
+    });
+}
 
         
         // Delete leave
@@ -1577,10 +1599,10 @@
                                     </div>
                                     <div class="record-footer">
                                         <span class="record-duration ${isFullDay(leave) ? 'full-day' : ''}">
-                                            <i class="far fa-clock"></i>
-                                            ${leave.duration}
-                                            ${!isFullDay(leave) ? ' (หักเวลาพักเที่ยงแล้ว)' : ' (8 ชม. = 1 วัน)'}
-                                        </span>
+    <i class="far fa-clock"></i>
+    ${leave.duration}
+    ${!isFullDay(leave) ? ' (หักพักเที่ยง)' : ''}
+</span>
                                     </div>
                                 </div>
                             `).join('')}
