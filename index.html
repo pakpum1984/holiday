@@ -188,16 +188,24 @@
             font-weight: 500;
         }
 
-        .input-group input {
+        .input-group input,
+        .input-group textarea {
             width: 100%;
             padding: 14px;
             border: 2px solid #e0e0e0;
             border-radius: 12px;
             font-size: 1rem;
             transition: all 0.3s;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        .input-group input:focus {
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -445,10 +453,36 @@
             color: #667eea;
         }
 
+        .record-reason {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin: 8px 0;
+            font-size: 0.9rem;
+            color: #555;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .record-reason i {
+            color: #667eea;
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        .record-reason span {
+            flex: 1;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
         .record-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-top: 5px;
         }
 
         .record-duration {
@@ -601,30 +635,30 @@
         }
 
         /* Sweet Alert Customization */
-.swal2-popup {
-    border-radius: 20px !important;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-}
+        .swal2-popup {
+            border-radius: 20px !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
 
-.swal2-title {
-    color: #333 !important;
-}
+        .swal2-title {
+            color: #333 !important;
+        }
 
-.swal2-confirm {
-    border-radius: 10px !important;
-    padding: 10px 30px !important;
-    font-weight: 600 !important;
-}
+        .swal2-confirm {
+            border-radius: 10px !important;
+            padding: 10px 30px !important;
+            font-weight: 600 !important;
+        }
 
-.swal2-cancel {
-    border-radius: 10px !important;
-    padding: 10px 30px !important;
-    font-weight: 600 !important;
-}
+        .swal2-cancel {
+            border-radius: 10px !important;
+            padding: 10px 30px !important;
+            font-weight: 600 !important;
+        }
 
-.swal2-timer-progress-bar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-}
+        .swal2-timer-progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
     </style>
 </head>
 <body>
@@ -682,6 +716,12 @@
                     <label><i class="far fa-calendar"></i> วันที่สิ้นสุด</label>
                     <input type="datetime-local" id="endDate" value="">
                 </div>
+            </div>
+
+            <!-- เพิ่มช่องกรอกเหตุผลการลา -->
+            <div class="input-group">
+                <label><i class="fas fa-pen"></i> เหตุผลการลา</label>
+                <textarea id="leaveReason" placeholder="กรุณาระบุเหตุผลการลา..." rows="3"></textarea>
             </div>
 
             <button class="submit-btn" id="saveBtn">
@@ -757,13 +797,10 @@
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<!-- Sweet Alert 2 -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Sweet Alert 2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-
-
-
         // Configuration - ใช้ค่าจากคุณโดยตรง
         const firebaseConfig  = {
             apiKey: "AIzaSyCbifgH3HKy04ZWfTrK-A0nf00a9mal6js",
@@ -882,43 +919,43 @@
             });
         }
 
-function addEmployee() {
-    const name = document.getElementById('newEmployeeName').value.trim();
-    if (name) {
-        const newEmployee = {
-            id: Date.now().toString(),
-            name: name
-        };
-        employees.push(newEmployee);
-        saveToLocalStorage();
-        
-        if (isOnline && firebaseInitialized) {
-            saveEmployeesToFirebase();
+        function addEmployee() {
+            const name = document.getElementById('newEmployeeName').value.trim();
+            if (name) {
+                const newEmployee = {
+                    id: Date.now().toString(),
+                    name: name
+                };
+                employees.push(newEmployee);
+                saveToLocalStorage();
+                
+                if (isOnline && firebaseInitialized) {
+                    saveEmployeesToFirebase();
+                }
+                
+                updateEmployeeSelect();
+                document.getElementById('employeeSelect').value = newEmployee.id;
+                document.getElementById('employeeModal').classList.remove('active');
+                document.getElementById('newEmployeeName').value = '';
+                updateEmployeeSummary();
+                
+                Swal.fire({
+                    title: 'เพิ่มพนักงานสำเร็จ!',
+                    text: `เพิ่ม ${name} เรียบร้อยแล้ว`,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    title: 'กรุณากรอกชื่อ',
+                    text: 'ชื่อพนักงานห้ามว่าง',
+                    icon: 'warning',
+                    confirmButtonColor: '#667eea',
+                    confirmButtonText: 'ตกลง'
+                });
+            }
         }
-        
-        updateEmployeeSelect();
-        document.getElementById('employeeSelect').value = newEmployee.id;
-        document.getElementById('employeeModal').classList.remove('active');
-        document.getElementById('newEmployeeName').value = '';
-        updateEmployeeSummary();
-        
-        Swal.fire({
-            title: 'เพิ่มพนักงานสำเร็จ!',
-            text: `เพิ่ม ${name} เรียบร้อยแล้ว`,
-            icon: 'success',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    } else {
-        Swal.fire({
-            title: 'กรุณากรอกชื่อ',
-            text: 'ชื่อพนักงานห้ามว่าง',
-            icon: 'warning',
-            confirmButtonColor: '#667eea',
-            confirmButtonText: 'ตกลง'
-        });
-    }
-}
 
         function updateEmployeeSelect() {
             const select = document.getElementById('employeeSelect');
@@ -1282,122 +1319,133 @@ function addEmployee() {
         }
 
         // Save leave
-    // Save leave
-async function saveLeave() {
-    const employeeId = document.getElementById('employeeSelect').value;
-    const leaveType = document.getElementById('leaveTypeSelect').value;
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    
-    if (!employeeId) {
-        Swal.fire({
-            title: 'ไม่สามารถบันทึกได้',
-            text: 'กรุณาเลือกพนักงาน',
-            icon: 'warning',
-            confirmButtonColor: '#667eea',
-            confirmButtonText: 'ตกลง'
-        });
-        return;
-    }
-    
-    if (!startDate || !endDate) {
-        Swal.fire({
-            title: 'ไม่สามารถบันทึกได้',
-            text: 'กรุณาเลือกวันที่และเวลา',
-            icon: 'warning',
-            confirmButtonColor: '#667eea',
-            confirmButtonText: 'ตกลง'
-        });
-        return;
-    }
-    
-    if (new Date(endDate) <= new Date(startDate)) {
-        Swal.fire({
-            title: 'ไม่สามารถบันทึกได้',
-            text: 'วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น',
-            icon: 'error',
-            confirmButtonColor: '#667eea',
-            confirmButtonText: 'ตกลง'
-        });
-        return;
-    }
-    
-    const newLeave = {
-        id: Date.now().toString(),
-        employeeId: employeeId,
-        employeeName: getEmployeeName(employeeId),
-        type: leaveType,
-        typeName: leaveTypeNames[leaveType],
-        icon: leaveTypeIcons[leaveType],
-        startDate: startDate,
-        endDate: endDate,
-        duration: calculateDuration(startDate, endDate, leaveType),
-        days: calculateDurationInDays(startDate, endDate, leaveType),
-        timestamp: new Date().toISOString()
-    };
-    
-    leaves.unshift(newLeave);
-    saveToLocalStorage();
-    
-    if (isOnline && firebaseInitialized) {
-        await saveToFirebase(newLeave);
-        await saveEmployeesToFirebase();
-    }
-    
-    updateUI();
-    initializeDateTime();
-    
-    // ✅ Sweet Alert แจ้งเตือนบันทึกสำเร็จ
-    Swal.fire({
-        title: 'บันทึกสำเร็จ!',
-        text: 'บันทึกการลาเรียบร้อยแล้ว',
-        icon: 'success',
-        timer: 1000,
-        timerProgressBar: true,
-        showConfirmButton: true,
-        confirmButtonColor: '#667eea',
-        confirmButtonText: 'ตกลง',
-        didOpen: () => {
-            Swal.showLoading()
+        async function saveLeave() {
+            const employeeId = document.getElementById('employeeSelect').value;
+            const leaveType = document.getElementById('leaveTypeSelect').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const reason = document.getElementById('leaveReason').value.trim(); // อ่านค่าเหตุผล
+            
+            if (!employeeId) {
+                Swal.fire({
+                    title: 'ไม่สามารถบันทึกได้',
+                    text: 'กรุณาเลือกพนักงาน',
+                    icon: 'warning',
+                    confirmButtonColor: '#667eea',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+            
+            if (!startDate || !endDate) {
+                Swal.fire({
+                    title: 'ไม่สามารถบันทึกได้',
+                    text: 'กรุณาเลือกวันที่และเวลา',
+                    icon: 'warning',
+                    confirmButtonColor: '#667eea',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+            
+            if (new Date(endDate) <= new Date(startDate)) {
+                Swal.fire({
+                    title: 'ไม่สามารถบันทึกได้',
+                    text: 'วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มต้น',
+                    icon: 'error',
+                    confirmButtonColor: '#667eea',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+            
+            if (!reason) {
+                Swal.fire({
+                    title: 'ไม่สามารถบันทึกได้',
+                    text: 'กรุณากรอกเหตุผลการลา',
+                    icon: 'warning',
+                    confirmButtonColor: '#667eea',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+            
+            const newLeave = {
+                id: Date.now().toString(),
+                employeeId: employeeId,
+                employeeName: getEmployeeName(employeeId),
+                type: leaveType,
+                typeName: leaveTypeNames[leaveType],
+                icon: leaveTypeIcons[leaveType],
+                startDate: startDate,
+                endDate: endDate,
+                duration: calculateDuration(startDate, endDate, leaveType),
+                days: calculateDurationInDays(startDate, endDate, leaveType),
+                reason: reason, // เพิ่มเหตุผลการลา
+                timestamp: new Date().toISOString()
+            };
+            
+            leaves.unshift(newLeave);
+            saveToLocalStorage();
+            
+            if (isOnline && firebaseInitialized) {
+                await saveToFirebase(newLeave);
+                await saveEmployeesToFirebase();
+            }
+            
+            updateUI();
+            initializeDateTime();
+            document.getElementById('leaveReason').value = ''; // เคลียร์ช่องเหตุผลหลังจากบันทึก
+            
+            // ✅ Sweet Alert แจ้งเตือนบันทึกสำเร็จ
+            Swal.fire({
+                title: 'บันทึกสำเร็จ!',
+                text: 'บันทึกการลาเรียบร้อยแล้ว',
+                icon: 'success',
+                timer: 1000,
+                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonColor: '#667eea',
+                confirmButtonText: 'ตกลง',
+                didOpen: () => {
+                    Swal.showLoading()
+                }
+            });
         }
-    });
-}
 
-
-
+        
         // Delete leave
- // Delete leave
-async function deleteLeave(id) {
-    const result = await Swal.fire({
-        title: 'ต้องการลบรายการนี้?',
-        text: 'เมื่อลบแล้วจะไม่สามารถกู้คืนข้อมูลได้',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#667eea',
-        confirmButtonText: 'ใช่, ลบเลย!',
-        cancelButtonText: 'ยกเลิก'
-    });
-    
-    if (result.isConfirmed) {
-        leaves = leaves.filter(leave => leave.id !== id);
-        saveToLocalStorage();
-        
-        if (isOnline && firebaseInitialized) {
-            await deleteFromFirebase(id);
+        async function deleteLeave(id) {
+            const result = await Swal.fire({
+                title: 'ต้องการลบรายการนี้?',
+                text: 'เมื่อลบแล้วจะไม่สามารถกู้คืนข้อมูลได้',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#667eea',
+                confirmButtonText: 'ใช่, ลบเลย!',
+                cancelButtonText: 'ยกเลิก'
+            });
+            
+            if (result.isConfirmed) {
+                leaves = leaves.filter(leave => leave.id !== id);
+                saveToLocalStorage();
+                
+                if (isOnline && firebaseInitialized) {
+                    await deleteFromFirebase(id);
+                }
+                
+                updateUI();
+                
+                Swal.fire({
+                    title: 'ลบสำเร็จ!',
+                    text: 'รายการถูกลบเรียบร้อยแล้ว',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
         }
-        
-        updateUI();
-        
-        Swal.fire({
-            title: 'ลบสำเร็จ!',
-            text: 'รายการถูกลบเรียบร้อยแล้ว',
-            icon: 'success',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    }
-}
 
         // Local Storage
         function saveToLocalStorage() {
@@ -1526,6 +1574,11 @@ async function deleteLeave(id) {
                                             hour: '2-digit',
                                             minute: '2-digit'
                                         })}
+                                    </div>
+                                    <!-- แสดงเหตุผลการลา -->
+                                    <div class="record-reason">
+                                        <i class="fas fa-quote-left"></i>
+                                        <span>${leave.reason || 'ไม่ได้ระบุเหตุผล'}</span>
                                     </div>
                                     <div class="record-footer">
                                         <span class="record-duration ${isFullDay(leave) ? 'full-day' : ''}">
