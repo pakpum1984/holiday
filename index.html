@@ -620,11 +620,15 @@ function createLeaveCardHTML(leave, overrideColor = null) {
                 ${leave.reason || '(ไม่มีเหตุผล)'}
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.9rem;">
-                <span style="color:${color};"><i class="far fa-clock"></i> ${leave.duration}</span>
-                <span style="color:#555;">
-                    ${new Date(leave.startDate).toLocaleDateString('th-TH',{day:'numeric',month:'short'})} –
-                    ${new Date(leave.endDate).toLocaleDateString('th-TH',{day:'numeric',month:'short'})}
-                </span>
+                <span style="color:${color}; white-space:nowrap;"><i class="far fa-clock"></i> ${leave.duration}</span>
+              <span style="color:#555; font-size:0.92rem;">
+    ${new Date(leave.startDate).toLocaleString('th-TH', { 
+        day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' 
+    })} น. – 
+    ${new Date(leave.endDate).toLocaleString('th-TH', { 
+        day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' 
+    })} น.
+</span>
             </div>
         </div>`;
 }
